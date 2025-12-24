@@ -7,11 +7,22 @@ interface ChatOverlayProps {
   visible: boolean
   variant?: 'overlay' | 'fullscreen'
   connectionState?: RTCPeerConnectionState
+  isPartnerTyping?: boolean
+  onTyping?: (isTyping: boolean) => void
 }
 
-export function ChatOverlay({ messages, onSendMessage, visible, variant = 'overlay', connectionState = 'new' }: ChatOverlayProps) {
+export function ChatOverlay({
+  messages,
+  onSendMessage,
+  visible,
+  variant = 'overlay',
+  connectionState = 'new',
+  isPartnerTyping,
+  onTyping
+}: ChatOverlayProps) {
   const [inputText, setInputText] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -19,13 +30,33 @@ export function ChatOverlay({ messages, onSendMessage, visible, variant = 'overl
 
   useEffect(() => {
     scrollToBottom()
-  }, [messages, visible])
+  }, [messages, visible, isPartnerTyping])
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInputText(e.target.value)
+
+    if (onTyping) {
+      onTyping(true)
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current)
+      }
+      typingTimeoutRef.current = setTimeout(() => {
+        onTyping(false)
+      }, 2000)
+    }
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (inputText.trim()) {
       onSendMessage(inputText)
       setInputText('')
+
+      // Clear typing status immediately on send
+      if (onTyping) {
+        onTyping(false)
+        if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current)
+      }
     }
   }
 
@@ -61,46 +92,55 @@ export function ChatOverlay({ messages, onSendMessage, visible, variant = 'overl
       </div>
 
       {/* Messages */}
-      <div className={`flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-700 ${variant === 'fullscreen' ? 'p-6 space-y-6' : 'p-2 space-y-2'}`}>
+      <div className={`flex-1 flex flex-col justify-end overflow-y-auto scrollbar-thin scrollbar-thumb-gray-700 ${variant === 'fullscreen' ? 'p-6 space-y-6' : 'p-3 space-y-3'}`}>
         {messages.length === 0 && (
-          <div className={`text-center text-gray-500 mt-10 ${variant === 'fullscreen' ? 'text-2xl font-light' : 'text-xs'}`}>
-            Say hello! 👋
+          <div className={`flex flex-col items-center justify-center h-full text-center text-gray-500 opacity-60 ${variant === 'fullscreen' ? 'gap-4' : 'gap-2'}`}>
+            <MessageSquare className="w-8 h-8 opacity-50" />
+            <p className="text-sm">No messages yet. Say hi! 👋</p>
           </div>
         )}
         {messages.filter(m => m && m.text).map((msg, idx) => (
           <div
             key={idx}
-            className={`break-words rounded-2xl shadow-md transition-all ${variant === 'fullscreen'
-              ? 'max-w-[80%] px-4 py-2 text-base leading-relaxed'
-              : 'max-w-[85%] px-3 py-1.5 text-sm'
-              } ${msg.sender === 'me'
-                ? 'bg-gradient-to-br from-purple-600 to-purple-700 text-white ml-auto rounded-br-none'
-                : 'bg-gray-800 border border-gray-700 text-gray-100 mr-auto rounded-bl-none'
+            className={`max-w-[85%] px-4 py-3 rounded-2xl shadow-sm text-sm leading-relaxed break-words animate-in slide-in-from-bottom-2 duration-300 ${msg.sender === 'me'
+              ? 'bg-gradient-to-br from-purple-600 to-indigo-600 text-white self-end rounded-br-sm shadow-purple-900/20'
+              : 'bg-gray-800/90 backdrop-blur-md text-gray-100 self-start rounded-bl-sm border border-white/5 shadow-black/20'
               }`}
           >
             {msg.text}
           </div>
         ))}
-        <div ref={messagesEndRef} />
+        {isPartnerTyping && (
+          <div className="self-start px-4 py-3 bg-gray-800/50 backdrop-blur-sm rounded-2xl rounded-bl-sm border border-white/5 animate-in fade-in slide-in-from-bottom-2">
+            <div className="flex gap-1">
+              <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+              <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+              <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"></span>
+            </div>
+          </div>
+        )}
+        <div ref={messagesEndRef} className="shrink-0" />
       </div>
 
       {/* Input */}
-      <form onSubmit={handleSubmit} className={`bg-black/20 border-t border-white/5 flex gap-2 shrink-0 ${variant === 'fullscreen' ? 'p-3' : 'p-2'}`}>
+      <form onSubmit={handleSubmit} className={`bg-black/40 backdrop-blur-xl border-t border-white/5 flex gap-2 shrink-0 ${variant === 'fullscreen' ? 'p-4' : 'p-3'}`}>
         <input
           type="text"
           value={inputText}
-          onChange={(e) => setInputText(e.target.value)}
+          onChange={handleInputChange}
+          onFocus={() => onTyping?.(true)}
+          onBlur={() => onTyping?.(false)}
           placeholder="Type a message..."
-          className={`flex-1 bg-gray-800/50 border border-gray-600 rounded-full text-white focus:outline-none focus:border-purple-500 transition-colors ${variant === 'fullscreen' ? 'px-4 py-3 text-base' : 'px-3 py-1.5 text-sm'
+          className={`flex-1 bg-gray-900/50 border border-white/10 rounded-full text-white placeholder-gray-500 focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/50 transition-all ${variant === 'fullscreen' ? 'px-6 py-4 text-base shadow-inner' : 'px-4 py-2 text-sm'
             }`}
         />
         <button
           type="submit"
           disabled={!inputText.trim()}
-          className={`bg-white/10 hover:bg-purple-600 rounded-full transition-colors disabled:opacity-50 disabled:hover:bg-white/10 flex items-center justify-center ${variant === 'fullscreen' ? 'w-12 h-12 p-0' : 'p-1.5'
+          className={`bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 rounded-full transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:grayscale hover:shadow-lg hover:shadow-purple-500/25 flex items-center justify-center ${variant === 'fullscreen' ? 'w-14 h-14 p-0' : 'w-10 h-10 p-0'
             }`}
         >
-          <Send className={`text-white ${variant === 'fullscreen' ? 'w-5 h-5' : 'w-4 h-4'}`} />
+          <Send className={`text-white ${variant === 'fullscreen' ? 'w-6 h-6 ml-0.5' : 'w-4 h-4 ml-0.5'}`} />
         </button>
       </form>
     </div>

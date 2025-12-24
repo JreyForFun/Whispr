@@ -1,10 +1,15 @@
 import { ChatOverlay } from './ChatOverlay'
+import { EmojiBlast } from './EmojiBlast'
 import { LogOut } from 'lucide-react'
 
 interface TextRoomProps {
   connectionState: RTCPeerConnectionState
   messages: any[]
   sendChatMessage: (text: string) => void
+  sendTyping?: (isTyping: boolean) => void
+  sendEmoji?: (emoji: string) => void
+  incomingEmoji?: { emoji: string, id: string } | null
+  isPartnerTyping?: boolean
   onStop: () => void
   onNext: () => void
   onReport: () => void
@@ -14,12 +19,22 @@ export function TextRoom({
   connectionState,
   messages,
   sendChatMessage,
+  sendTyping,
+  sendEmoji,
+  incomingEmoji,
+  isPartnerTyping,
   onStop,
   onNext,
   onReport
 }: TextRoomProps) {
+  const emojis = ["👍", "❤️", "😂", "😮"]
+
   return (
     <div className="w-full h-full flex flex-col relative bg-gray-950">
+
+      {/* Floating Emoji Layer */}
+      <EmojiBlast incomingEmoji={incomingEmoji || null} />
+
       <div className="flex-1 relative overflow-hidden flex flex-col">
         {/* Header / Report for Text Room? */}
         <div className="absolute top-0 left-0 right-0 p-2 z-10 flex justify-end pointer-events-none">
@@ -37,10 +52,12 @@ export function TextRoom({
           visible={true}
           variant="fullscreen"
           connectionState={connectionState}
+          isPartnerTyping={isPartnerTyping}
+          onTyping={sendTyping}
         />
       </div>
 
-      <div className="h-[64px] bg-gray-900 border-t border-gray-800 flex items-center justify-between px-4 md:justify-center md:gap-8 z-50 safe-area-bottom shrink-0">
+      <div className="h-[64px] bg-gray-900 border-t border-gray-800 flex items-center justify-between px-4 md:justify-center md:gap-8 z-50 safe-area-bottom shrink-0 relative">
         <button
           onClick={onStop}
           className="flex flex-col md:flex-row items-center gap-1 md:gap-2 text-gray-400 hover:text-red-400 transition-colors p-1"
@@ -51,7 +68,18 @@ export function TextRoom({
           <span className="text-[10px] font-bold uppercase tracking-wide">Stop</span>
         </button>
 
-        {/* No Chat Toggle in Text Mode */}
+        {/* Reaction Buttons */}
+        <div className="flex items-center gap-2 mx-2">
+          {emojis.map(emoji => (
+            <button
+              key={emoji}
+              onClick={() => sendEmoji && sendEmoji(emoji)}
+              className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-gray-800 hover:bg-gray-700 flex items-center justify-center text-lg md:text-xl transition-transform hover:scale-110 active:scale-95 border border-white/5"
+            >
+              {emoji}
+            </button>
+          ))}
+        </div>
 
         <button
           onClick={onNext}

@@ -1,6 +1,8 @@
+import { useState } from 'react'
 import { ChatOverlay } from './ChatOverlay'
 import { VideoStage } from './VideoStage'
-import { LogOut } from 'lucide-react'
+import { EmojiBlast } from './EmojiBlast'
+import { LogOut, Mic, MicOff, Video, VideoOff } from 'lucide-react'
 
 interface VideoRoomProps {
   localStream: MediaStream | null
@@ -11,7 +13,10 @@ interface VideoRoomProps {
   onStop: () => void
   onNext: () => void
   onReport: () => void
-
+  sendTyping: (isTyping: boolean) => void
+  sendEmoji: (emoji: string) => void
+  incomingEmoji: { emoji: string, id: string } | null
+  isPartnerTyping: boolean
 }
 
 export function VideoRoom({
@@ -23,11 +28,37 @@ export function VideoRoom({
   onStop,
   onNext,
   onReport,
-
+  sendTyping,
+  sendEmoji,
+  incomingEmoji,
+  isPartnerTyping
 }: VideoRoomProps) {
+  const emojis = ["👍", "❤️", "😂", "😮"]
+  const [isMuted, setIsMuted] = useState(false)
+  const [isCameraOff, setIsCameraOff] = useState(false)
+
+  const toggleMute = () => {
+    if (localStream) {
+      localStream.getAudioTracks().forEach(track => {
+        track.enabled = !track.enabled
+      })
+      setIsMuted(!isMuted)
+    }
+  }
+
+  const toggleCamera = () => {
+    if (localStream) {
+      localStream.getVideoTracks().forEach(track => {
+        track.enabled = !track.enabled
+      })
+      setIsCameraOff(!isCameraOff)
+    }
+  }
 
   return (
     <div className="w-full h-full flex flex-col relative bg-gray-900">
+      <EmojiBlast incomingEmoji={incomingEmoji || null} />
+
       <div className="flex-1 relative overflow-hidden flex flex-col md:flex-row">
         {/* Video Area */}
         <div className="relative h-full transition-all duration-300 w-full md:w-[70%]">
@@ -47,6 +78,8 @@ export function VideoRoom({
             visible={true}
             variant="fullscreen" // Use fullscreen variant to fill the container
             connectionState={connectionState}
+            isPartnerTyping={isPartnerTyping}
+            onTyping={sendTyping}
           />
         </div>
       </div>
@@ -62,6 +95,38 @@ export function VideoRoom({
           <span className="text-[10px] font-bold uppercase tracking-wide">Stop</span>
         </button>
 
+        <button
+          onClick={toggleMute}
+          className={`flex flex-col md:flex-row items-center gap-1 md:gap-2 transition-colors p-1 ${isMuted ? 'text-red-500' : 'text-gray-400 hover:text-white'}`}
+        >
+          <div className={`p-1.5 rounded-full transition-colors ${isMuted ? 'bg-red-500/20' : 'bg-gray-800 hover:bg-gray-700'}`}>
+            {isMuted ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+          </div>
+          <span className="text-[10px] font-bold uppercase tracking-wide hidden md:block">{isMuted ? 'Unmute' : 'Mute'}</span>
+        </button>
+
+        <button
+          onClick={toggleCamera}
+          className={`flex flex-col md:flex-row items-center gap-1 md:gap-2 transition-colors p-1 ${isCameraOff ? 'text-red-500' : 'text-gray-400 hover:text-white'}`}
+        >
+          <div className={`p-1.5 rounded-full transition-colors ${isCameraOff ? 'bg-red-500/20' : 'bg-gray-800 hover:bg-gray-700'}`}>
+            {isCameraOff ? <VideoOff className="w-4 h-4" /> : <Video className="w-4 h-4" />}
+          </div>
+          <span className="text-[10px] font-bold uppercase tracking-wide hidden md:block">{isCameraOff ? 'Cam On' : 'Cam Off'}</span>
+        </button>
+
+        {/* Reaction Buttons */}
+        <div className="flex items-center gap-2 mx-2">
+          {emojis.map(emoji => (
+            <button
+              key={emoji}
+              onClick={() => sendEmoji(emoji)}
+              className="w-10 h-10 rounded-full bg-gray-800 hover:bg-gray-700 flex items-center justify-center text-xl transition-transform hover:scale-110 active:scale-95 border border-white/5"
+            >
+              {emoji}
+            </button>
+          ))}
+        </div>
 
 
         <button

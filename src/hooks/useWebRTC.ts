@@ -2,11 +2,27 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { useSession } from '../store/useSession'
 
+// PRODUCTION CONFIGURATION NOTE:
+// For production, you MUST provide TURN servers to ensure connections across different networks (NATs/Firewalls).
+// Relying only on Google's public STUN server will fail for ~20% of users (Symmetric NATs).
+// Recommended providers: Twilio, Metered.ca, or self-hosted CoTurn.
+//
+// Example Configuration:
+// const ICE_SERVERS = {
+//   iceServers: [
+//     { urls: 'stun:stun.l.google.com:19302' },
+//     {
+//       urls: 'turn:global.turn.twilio.com:3478',
+//       username: 'your-twilio-username',
+//       credential: 'your-twilio-password'
+//     }
+//   ]
+// }
+
 const ICE_SERVERS = {
   iceServers: [
     { urls: 'stun:stun.l.google.com:19302' },
-    // In production, add TURN servers here from env
-    // { urls: import.meta.env.VITE_TURN_URL, ... }
+    // { urls: import.meta.env.VITE_TURN_URL ... }
   ],
 }
 
@@ -15,11 +31,14 @@ export function useWebRTC(isOfferer: boolean = false, onPeerDisconnected?: () =>
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null)
   const [localStream, setLocalStream] = useState<MediaStream | null>(null)
   const [connectionState, setConnectionState] = useState<RTCPeerConnectionState>('new')
+  const [isPartnerTyping, setIsPartnerTyping] = useState(false)
+  const [incomingEmoji, setIncomingEmoji] = useState<{ emoji: string, id: string } | null>(null)
 
   // Auto-detect disconnects
   useEffect(() => {
     if (['disconnected', 'failed', 'closed'].includes(connectionState)) {
       onPeerDisconnected?.()
+      setIsPartnerTyping(false) // Reset on disconnect
     }
   }, [connectionState, onPeerDisconnected])
 
@@ -54,14 +73,29 @@ export function useWebRTC(isOfferer: boolean = false, onPeerDisconnected?: () =>
       console.log('Chat Channel Open', { label: dc.label, readyState: dc.readyState })
     }
     dc.onmessage = (e) => {
-      console.log('Chat message received', { data: e.data })
-      setMessages(prev => [...prev, { sender: 'them', text: e.data }])
+      try {
+        const data = JSON.parse(e.data)
+        if (data.type === 'chat') {
+          console.log('Chat message received', { text: data.text })
+          setMessages(prev => [...prev, { sender: 'them', text: data.text }])
+          setIsPartnerTyping(false) // Assume they stopped typing when they sent
+        } else if (data.type === 'typing') {
+          setIsPartnerTyping(data.isTyping)
+        } else if (data.type === 'emoji') {
+          setIncomingEmoji({ emoji: data.emoji, id: Date.now().toString() })
+        }
+      } catch (err) {
+        // Fallback for backward compatibility or raw strings
+        console.warn('Received non-JSON message, treating as text', e.data)
+        setMessages(prev => [...prev, { sender: 'them', text: e.data }])
+      }
     }
     dc.onerror = (err) => {
       console.error('Data channel error', err)
     }
     dc.onclose = () => {
       console.log('Data channel closed')
+      setIsPartnerTyping(false)
     }
     dataChannelRef.current = dc
   }
@@ -220,6 +254,7 @@ export function useWebRTC(isOfferer: boolean = false, onPeerDisconnected?: () =>
       setRemoteStream(null)
       setConnectionState('closed')
       setMessages([])
+      setIsPartnerTyping(false)
       dataChannelRef.current = null
     }
   }, [roomId, sessionId, localStream, createPeer, onPeerDisconnected, isOfferer])
@@ -253,10 +288,25 @@ export function useWebRTC(isOfferer: boolean = false, onPeerDisconnected?: () =>
   const sendChatMessage = (text: string) => {
     console.log("sendChatMessage called", { text, dc: !!dataChannelRef.current, state: dataChannelRef.current?.readyState })
     if (dataChannelRef.current && dataChannelRef.current.readyState === 'open') {
-      dataChannelRef.current.send(text)
+      const payload = JSON.stringify({ type: 'chat', text })
+      dataChannelRef.current.send(payload)
       setMessages(prev => [...prev, { sender: 'me', text }])
     } else {
       console.warn("Chat channel not open", { dc: !!dataChannelRef.current, state: dataChannelRef.current?.readyState })
+    }
+  }
+
+  const sendTyping = (isTyping: boolean) => {
+    if (dataChannelRef.current && dataChannelRef.current.readyState === 'open') {
+      const payload = JSON.stringify({ type: 'typing', isTyping })
+      dataChannelRef.current.send(payload)
+    }
+  }
+
+  const sendEmoji = (emoji: string) => {
+    if (dataChannelRef.current && dataChannelRef.current.readyState === 'open') {
+      const payload = JSON.stringify({ type: 'emoji', emoji })
+      dataChannelRef.current.send(payload)
     }
   }
 
@@ -265,6 +315,7 @@ export function useWebRTC(isOfferer: boolean = false, onPeerDisconnected?: () =>
     setLocalStream(null)
     peerRef.current?.close()
     setMessages([])
+    setIsPartnerTyping(false)
     dataChannelRef.current = null
   }
 
@@ -276,7 +327,11 @@ export function useWebRTC(isOfferer: boolean = false, onPeerDisconnected?: () =>
     createOffer,
     stop,
     sendChatMessage,
+    sendTyping,
+    sendEmoji,
+    incomingEmoji,
     messages,
+    isPartnerTyping,
     sendSignalBye
   }
 }
