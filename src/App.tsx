@@ -84,11 +84,16 @@ function App() {
   // Handle Peer Exit
   useEffect(() => {
     if (peerExited) {
-      console.log("Peer exited, stopping session.")
-      handleStop(false) // Don't send bye back if they already left
+      console.log("Peer exited, auto-requeuing.")
+      handleStop(false).then(() => {
+        // Auto-restart search after a short delay to allow UI to reset
+        setTimeout(() => {
+          setIsMatching(true)
+        }, 100)
+      })
       setPeerExited(false) // Reset
     }
-  }, [handleStop, peerExited])
+  }, [handleStop, peerExited, setIsMatching])
 
   // Auto-recover UI if connection drops after a match
   useEffect(() => {
@@ -279,7 +284,7 @@ function App() {
 
       {/* Main Content */}
       <ErrorBoundary>
-        <main className={`flex-1 flex flex-col relative ${roomId ? 'w-full bg-black p-0 overflow-hidden' : 'items-center justify-start py-8 md:justify-center p-4'}`}>
+        <main className={`flex-1 flex flex-col relative ${roomId ? 'w-full bg-transparent p-0 overflow-hidden' : 'items-center justify-start py-8 md:justify-center p-4'}`}>
 
           {/* State: Waiting Only (No Match, Not Searching) */}
           {!isMatching && !roomId && (

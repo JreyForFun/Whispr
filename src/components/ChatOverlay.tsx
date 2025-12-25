@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Send, MessageSquare } from 'lucide-react'
+import { Send, MessageSquare, Sparkles } from 'lucide-react'
 
 interface ChatOverlayProps {
   messages: { sender: 'me' | 'them', text: string }[]
@@ -64,7 +64,7 @@ export function ChatOverlay({
 
   const overlayClasses = "absolute z-40 bottom-[85px] left-2 right-2 max-h-[40vh] md:bottom-24 md:right-auto md:left-8 md:w-80 md:h-96 md:max-h-[60vh] bg-black/80 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl transition-all animate-in slide-in-from-bottom-5"
 
-  const fullscreenClasses = "relative w-full h-full bg-gray-900 flex flex-col"
+  const fullscreenClasses = "relative w-full h-full bg-transparent flex flex-col"
 
   const getStatusColor = () => {
     switch (connectionState) {
@@ -80,10 +80,12 @@ export function ChatOverlay({
     <div className={`flex flex-col overflow-hidden ${variant === 'fullscreen' ? fullscreenClasses : overlayClasses}`}>
 
       {/* Header */}
-      <div className="p-2 bg-white/5 border-b border-white/5 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-2">
-          <MessageSquare className="w-4 h-4 text-purple-400" />
-          <span className="text-xs font-bold text-gray-300">Encrypted Chat</span>
+      <div className="p-3 bg-black/20 backdrop-blur-xl border-b border-white/10 flex items-center justify-between shrink-0 z-30 shadow-sm">
+        <div className="flex items-center gap-2.5">
+          <div className="p-1.5 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-lg border border-pink-500/20 shadow-[0_0_10px_rgba(236,72,153,0.3)]">
+            <Sparkles className="w-3.5 h-3.5 text-pink-400" />
+          </div>
+          <span className="text-xs font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-200 to-pink-200 tracking-wide">New Connection</span>
         </div>
         <div className="flex items-center gap-1.5 px-2 py-1 bg-black/20 rounded-full border border-white/5">
           <div className={`w-1.5 h-1.5 rounded-full ${getStatusColor()}`} />
