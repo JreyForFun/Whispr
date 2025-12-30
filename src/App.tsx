@@ -208,8 +208,20 @@ function App() {
     }
   }, [isMatching, roomId, sessionId, hasVideo, setRoomId, setIsMatching])
 
-  const handleStartSearch = (mode: 'video' | 'text') => {
+  const handleStartSearch = async (mode: 'video' | 'text') => {
     setHasVideo(mode === 'video')
+    
+    // For video mode, ensure stream is ready before starting match
+    if (mode === 'video') {
+      try {
+        await startLocalStream()
+      } catch (err) {
+        console.error("Failed to start stream", err)
+        alert("Could not access camera/microphone. Please check permissions.")
+        return
+      }
+    }
+    
     setIsMatching(true)
   }
 

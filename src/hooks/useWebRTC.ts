@@ -155,6 +155,21 @@ export function useWebRTC(isOfferer: boolean = false, onPeerDisconnected?: () =>
     return pc
   }, [])
 
+  // Add local tracks when stream becomes available
+  useEffect(() => {
+    if (localStream && peerRef.current) {
+      const pc = peerRef.current
+      // Check if tracks are already added to avoid duplicates
+      const existingTracks = pc.getSenders().map(sender => sender.track)
+      localStream.getTracks().forEach(track => {
+        if (!existingTracks.includes(track)) {
+          pc.addTrack(track, localStream)
+          console.log('Added track to peer connection:', track.kind)
+        }
+      })
+    }
+  }, [localStream])
+
   // 3. Handle Signaling
   useEffect(() => {
     if (!roomId || !sessionId) return
