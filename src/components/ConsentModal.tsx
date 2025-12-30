@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Check, ChevronLeft, ShieldAlert, Heart, Lock, UserX } from 'lucide-react'
+import { ChevronLeft, ShieldAlert, Heart, Lock, UserX } from 'lucide-react'
 import { useSession } from '../store/useSession'
 import { v4 as uuidv4 } from 'uuid'
 
@@ -26,8 +26,8 @@ export function ConsentModal() {
         <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-pink-900/10 rounded-full blur-[100px] mix-blend-screen" />
       </div>
 
-      <div className="relative w-full max-w-[420px] animate-in fade-in zoom-in-95 duration-500">
-        <div className="relative bg-[#0a0a0a] border border-white/10 p-10 md:p-12 rounded-[36px] shadow-2xl shadow-black/60 overflow-hidden min-h-[520px] flex flex-col backdrop-blur-xl">
+      <div className="relative w-full max-w-[400px] animate-in fade-in zoom-in-95 duration-500">
+        <div className="relative bg-[#0a0a0a] border border-white/5 p-8 md:p-10 rounded-[32px] shadow-2xl overflow-hidden min-h-[500px] flex flex-col">
 
           {/* Top Light Accent */}
           <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
@@ -100,13 +100,15 @@ export function ConsentModal() {
             </div>
           ) : (
             <div className="relative z-10 flex flex-col items-center animate-in slide-in-from-left duration-300 h-full">
-              {/* Icon */}
-              <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 border border-white/10 flex items-center justify-center mb-8 shadow-[0_0_50px_-10px_rgba(168,85,247,0.4)] shrink-0">
-                <img src="/pwa-192x192.png" alt="Whispr Logo" className="w-16 h-16 object-contain" />
-              </div>
+              {/* Logo (Image) - No Container */}
+              <img
+                src="/pwa-512x512.png"
+                alt="Whispr Logo"
+                className="w-24 h-24 mb-6 drop-shadow-[0_0_30px_rgba(168,85,247,0.5)] animate-float object-contain"
+              />
 
-              <h1 className="text-4xl font-black text-white mb-3 tracking-tight">Whispr</h1>
-              <p className="text-gray-400 mb-12 text-sm font-medium tracking-wide leading-relaxed">
+              <h1 className="text-4xl font-black text-white mb-2 tracking-tight font-brand">Whispr</h1>
+              <p className="text-gray-400 mb-10 text-sm font-medium tracking-wide">
                 Find Friends. Find Love. Just Talk.
               </p>
 
@@ -120,58 +122,40 @@ export function ConsentModal() {
                       onChange={(e) => setAgreedAge(e.target.checked)}
                       className="peer sr-only"
                     />
-                    <div className="w-5 h-5 rounded-lg border-2 border-gray-600 peer-checked:border-purple-500 peer-checked:bg-purple-500 transition-all duration-300 flex items-center justify-center group-hover:border-gray-500">
-                      <Check className="w-3.5 h-3.5 text-white opacity-0 peer-checked:opacity-100 transition-opacity duration-200" strokeWidth={3} />
-                    </div>
+                    <div className="w-5 h-5 rounded-lg border-2 border-gray-600 peer-checked:border-purple-500 peer-checked:bg-purple-500 transition-all duration-300 flex items-center justify-center group-hover:border-gray-500" />
                   </div>
                   <span className="text-sm text-gray-400 group-hover:text-gray-300 transition-colors select-none font-medium">
                     I am 18+ years old and I confirm that I am not a minor.
                   </span>
                 </label>
 
-                <label className="flex items-start gap-4 p-4 rounded-2xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] hover:border-white/10 transition-all duration-300 group cursor-pointer">
-                  <div className="relative flex-shrink-0 mt-0.5">
-                    <input
-                      type="checkbox"
-                      checked={agreedRules}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setShowRules(true)
-                        } else {
-                          setAgreedRules(false)
-                        }
-                      }}
-                      className="peer sr-only"
+                <div className="flex items-start gap-4 p-4 rounded-2xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] hover:border-white/10 transition-all duration-300 group">
+                  <div className="relative flex-shrink-0 mt-0.5 pointer-events-none">
+                    <div
+                      className={`w-5 h-5 rounded-lg border-2 transition-all duration-300 flex items-center justify-center 
+                            ${agreedRules ? 'border-purple-500 bg-purple-500' : 'border-gray-600 group-hover:border-gray-500'}`}
                     />
-                    <div className="w-5 h-5 rounded-lg border-2 border-gray-600 peer-checked:border-purple-500 peer-checked:bg-purple-500 transition-all duration-300 flex items-center justify-center group-hover:border-gray-500">
-                      <Check className="w-3.5 h-3.5 text-white opacity-0 peer-checked:opacity-100 transition-opacity duration-200" strokeWidth={3} />
-                    </div>
                   </div>
                   <div className="flex flex-col items-start gap-1">
-                    <span className="text-sm text-gray-400 group-hover:text-gray-300 transition-colors select-none font-medium">
+                    <span className="text-sm text-gray-400 group-hover:text-gray-300 transition-colors select-none font-medium cursor-pointer" onClick={() => setAgreedRules(!agreedRules)}>
                       I have read and agree to the
                     </span>
                     <button
-                      type="button"
-                      onClick={(e) => {
-                        e.preventDefault()
-                        setShowRules(true)
-                      }}
+                      onClick={() => setShowRules(true)}
                       className="text-sm font-bold text-purple-400 hover:text-purple-300 hover:underline decoration-purple-500/30 underline-offset-4 transition-colors text-left"
                     >
                       Community Rules
                     </button>
                   </div>
-                </label>
+                </div>
               </div>
 
               <button
                 onClick={handleEnter}
                 disabled={!agreedAge || !agreedRules}
-                className="w-full py-5 rounded-2xl font-bold text-lg text-white bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-300 shadow-[0_0_50px_-10px_rgba(168,85,247,0.5)] hover:shadow-[0_0_70px_-15px_rgba(168,85,247,0.7)] transform hover:scale-[1.02] active:scale-[0.98] relative overflow-hidden group"
+                className="w-full py-5 rounded-2xl font-bold text-lg text-white bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-300 shadow-[0_0_40px_-10px_rgba(168,85,247,0.4)] hover:shadow-[0_0_60px_-15px_rgba(168,85,247,0.6)] transform hover:scale-[1.02] active:scale-[0.98]"
               >
-                <span className="relative z-10">Get Started</span>
-                <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
+                Get Started
               </button>
 
               <p className="mt-8 text-[11px] text-gray-600 font-medium uppercase tracking-widest opacity-60">

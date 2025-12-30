@@ -55,8 +55,17 @@ export function useWebRTC(isOfferer: boolean = false, onPeerDisconnected?: () =>
     if (!hasVideo) return // Audio/Text only logic could be here
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { width: { max: 1280 }, height: { max: 720 } },
-        audio: true
+        video: {
+          width: { min: 640, ideal: 1280, max: 1920 }, // Min 480p, Ideal 720p, Max 1080p
+          height: { min: 480, ideal: 720, max: 1080 },
+          frameRate: { min: 30, ideal: 30, max: 60 }, // Adapt between 30-60fps
+          facingMode: "user"
+        },
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        }
       })
       setLocalStream(stream)
       return stream
@@ -66,11 +75,23 @@ export function useWebRTC(isOfferer: boolean = false, onPeerDisconnected?: () =>
     }
   }, [hasVideo])
 
+
+
+
+
+
+  const messageQueue = useRef<string[]>([])
+
   // Helper to setup Data Channel events
   const setupDataChannel = (dc: RTCDataChannel) => {
     console.log('Setting up data channel', { label: dc.label, readyState: dc.readyState })
     dc.onopen = () => {
       console.log('Chat Channel Open', { label: dc.label, readyState: dc.readyState })
+      // Flush queue
+      while (messageQueue.current.length > 0) {
+        const payload = messageQueue.current.shift()
+        if (payload) dc.send(payload)
+      }
     }
     dc.onmessage = (e) => {
       try {
@@ -205,6 +226,17 @@ export function useWebRTC(isOfferer: boolean = false, onPeerDisconnected?: () =>
           onPeerDisconnected()
         }
       })
+      // SAFETY NET: Listen for DB Room Deletion (Zombie Protection)
+      .on(
+        'postgres_changes',
+        { event: 'DELETE', schema: 'public', table: 'active_rooms', filter: `id=eq.${roomId}` },
+        () => {
+          console.log("Room deleted in DB. Disconnecting.")
+          if (onPeerDisconnected) {
+            onPeerDisconnected()
+          }
+        }
+      )
       .subscribe(async (status) => {
         if (status === 'SUBSCRIBED') {
           console.log("Signaling Channel Subscribed. Is Offerer?", isOfferer)
@@ -238,7 +270,7 @@ export function useWebRTC(isOfferer: boolean = false, onPeerDisconnected?: () =>
                 }
                 console.log("Resending Offer (Retry)...")
                 channelRef.current?.send(sendPayload)
-              }, 2000)
+              }, 1000)
             }
             startOfferLoop().catch(console.error)
           }
@@ -286,13 +318,16 @@ export function useWebRTC(isOfferer: boolean = false, onPeerDisconnected?: () =>
   }
 
   const sendChatMessage = (text: string) => {
-    console.log("sendChatMessage called", { text, dc: !!dataChannelRef.current, state: dataChannelRef.current?.readyState })
+    const payload = JSON.stringify({ type: 'chat', text })
+
+    // Always show locally immediately (Optimistic UI)
+    setMessages(prev => [...prev, { sender: 'me', text }])
+
     if (dataChannelRef.current && dataChannelRef.current.readyState === 'open') {
-      const payload = JSON.stringify({ type: 'chat', text })
       dataChannelRef.current.send(payload)
-      setMessages(prev => [...prev, { sender: 'me', text }])
     } else {
-      console.warn("Chat channel not open", { dc: !!dataChannelRef.current, state: dataChannelRef.current?.readyState })
+      console.log("Queueing message...", text)
+      messageQueue.current.push(payload)
     }
   }
 
@@ -314,6 +349,7 @@ export function useWebRTC(isOfferer: boolean = false, onPeerDisconnected?: () =>
     localStream?.getTracks().forEach(t => t.stop())
     setLocalStream(null)
     peerRef.current?.close()
+    setConnectionState('closed')
     setMessages([])
     setIsPartnerTyping(false)
     dataChannelRef.current = null

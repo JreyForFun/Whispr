@@ -8,10 +8,11 @@ import { TextRoom } from './components/TextRoom'
 import { Legal } from './components/Legal'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { BackgroundEffect } from './components/BackgroundEffect'
-import { Zap, MessageSquare, Search } from 'lucide-react'
+import { ReportModal } from './components/ReportModal'
+import { MessageCircle, Search, AlertTriangle, Video } from 'lucide-react'
 
 // Poll interval for matchmaking
-const MATCH_POLL_MS = 2000
+const MATCH_POLL_MS = 1000
 
 function App() {
   const {
@@ -35,6 +36,8 @@ function App() {
   const lastRoomIdRef = useRef<string | null>(null)
   const [peerExited, setPeerExited] = useState(false)
   const [showLegal, setShowLegal] = useState(false)
+
+  const [showReportModal, setShowReportModal] = useState(false)
 
   const handlePeerExited = useCallback(() => setPeerExited(true), [])
 
@@ -84,16 +87,12 @@ function App() {
   // Handle Peer Exit
   useEffect(() => {
     if (peerExited) {
-      console.log("Peer exited, auto-requeuing.")
-      handleStop(false).then(() => {
-        // Auto-restart search after a short delay to allow UI to reset
-        setTimeout(() => {
-          setIsMatching(true)
-        }, 100)
-      })
+      console.log("Peer exited, showing disconnected screen.")
+      // Stop connection locally but KEEP roomId so we show PeerDisconnectedScreen
+      stop()
       setPeerExited(false) // Reset
     }
-  }, [handleStop, peerExited, setIsMatching])
+  }, [stop, peerExited])
 
   // Auto-recover UI if connection drops after a match
   useEffect(() => {
@@ -225,19 +224,20 @@ function App() {
     }
   }, [hasVideo, isMatching, localStream, setIsMatching, startLocalStream])
 
-  const handleNext = async () => {
-    // 1. Disconnect current & Wait for DB deletion
+  const onStopClick = async () => {
+    // User stops manually -> Returns to Lobby
     await handleStop(true)
-
-    // 2. Restart search
-    setTimeout(() => {
-      startLocalStream().then(() => {
-        setIsMatching(true)
-      })
-    }, 200)
   }
 
-  const handleReport = async () => {
+  const onNextClick = async () => {
+    // User wants next person -> Disconnect & Auto-Search
+    await handleStop(true)
+    setTimeout(() => {
+      setIsMatching(true)
+    }, 100)
+  }
+
+  const onConfirmReport = async () => {
     if (!roomId) return
     try {
       const { data: roomData } = await supabase
@@ -261,9 +261,13 @@ function App() {
       console.error("Report failed", e)
     }
 
-    // 2. Disconnect
-    handleStop()
-    alert("User reported. Disconnecting.")
+    setShowReportModal(false)
+
+    // Disconnect & Auto-Search (Treat like "Next")
+    await handleStop(true)
+    setTimeout(() => {
+      setIsMatching(true)
+    }, 100)
   }
 
   return (
@@ -273,29 +277,47 @@ function App() {
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-purple-900/20 via-black/80 to-black pointer-events-none z-0" />
       <ConsentModal />
 
+      <ReportModal
+        isOpen={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        onConfirm={onConfirmReport}
+      />
+
       {/* Header */}
-      <header className="p-4 flex justify-between items-center z-50 shrink-0">
+      {/* Header */}
+      <header className="p-4 flex justify-between items-center z-[100] shrink-0 absolute top-0 left-0 right-0 md:relative">
         <div className="flex items-center gap-3">
-          <img src="/pwa-192x192.png" alt="Whispr Logo" className="w-12 h-12 object-contain hover:scale-110 transition-transform duration-300" />
-          <span className="font-extrabold text-3xl tracking-tight hidden md:block bg-clip-text text-transparent bg-gradient-to-r from-white to-purple-400">Whispr</span>
+          <img src="/pwa-192x192.png" alt="Whispr Logo" className="w-10 h-10 md:w-12 md:h-12 object-contain hover:scale-110 transition-transform duration-300" />
+          <span className="font-extrabold text-2xl md:text-3xl tracking-tight hidden md:block bg-clip-text text-transparent bg-gradient-to-r from-white to-purple-400 font-brand">Whispr</span>
         </div>
-        <OnlineUsersBadge />
+
+        {roomId && connectionState === 'connected' ? (
+          <button
+            onClick={() => setShowReportModal(true)}
+            className="flex items-center gap-2 p-2 md:px-4 md:py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 rounded-full backdrop-blur-md border border-red-500/20 transition-all text-xs font-bold shadow-lg shadow-red-900/20 hover:shadow-red-500/20 z-50 pointer-events-auto group"
+          >
+            <AlertTriangle className="w-4 h-4 group-hover:scale-110 transition-transform" />
+            <span className="hidden md:inline">REPORT USER</span>
+          </button>
+        ) : (
+          <OnlineUsersBadge />
+        )}
       </header>
 
       {/* Main Content */}
       <ErrorBoundary>
-        <main className={`flex-1 flex flex-col relative ${roomId ? 'w-full bg-transparent p-0 overflow-hidden' : 'items-center justify-start py-8 md:justify-center p-4'}`}>
+        <main className={`flex-1 flex flex-col relative ${roomId ? 'w-full bg-transparent p-0 overflow-hidden' : 'items-center justify-center pt-20 pb-4 p-4'}`}>
 
           {/* State: Waiting Only (No Match, Not Searching) */}
           {!isMatching && !roomId && (
             <div className="flex flex-col items-center w-full max-w-5xl animate-in fade-in-up duration-700 gap-6 md:gap-12 py-8 md:py-0">
               {/* Hero Text */}
-              <div className="text-center relative shrink-0">
+              <div className="text-center relative shrink-0 mt-12 md:mt-0">
                 <div className="absolute -inset-10 bg-purple-500/10 blur-[100px] rounded-full pointer-events-none" />
-                <h2 className="text-5xl md:text-7xl font-black bg-clip-text text-transparent bg-gradient-to-r from-white via-pink-200 to-purple-400 tracking-tighter mb-4 relative z-10 leading-[1.1]">
+                <h2 className="text-4xl md:text-7xl font-black bg-clip-text text-transparent bg-gradient-to-r from-white via-pink-200 to-purple-400 tracking-tighter mb-2 md:mb-4 relative z-10 leading-[1.1] font-brand">
                   Find Your Person.
                 </h2>
-                <p className="text-lg md:text-2xl text-gray-400 font-medium tracking-wide">
+                <p className="text-base md:text-2xl text-gray-400 font-medium tracking-wide max-w-xs mx-auto md:max-w-none">
                   Make friends. Find love. Just talk.
                 </p>
               </div>
@@ -305,18 +327,20 @@ function App() {
                 <button
                   onClick={() => handleStartSearch('text')}
                   disabled={!consentGiven}
-                  className="flex-1 group relative bg-gray-900/50 backdrop-blur-xl border border-white/10 rounded-[36px] p-8 transition-all duration-500 hover:-translate-y-2 hover:bg-gray-800/70 hover:border-blue-500/30 overflow-hidden hover:shadow-[0_20px_60px_-15px_rgba(59,130,246,0.5)]"
+                  className="flex-1 group relative overflow-hidden rounded-[24px] md:rounded-[36px] p-4 md:p-8 transition-all duration-700 ease-out hover:-translate-y-2 hover:scale-[1.02] w-full glass-liquid hover:shadow-[0_20px_60px_-15px_rgba(59,130,246,0.6)] hover:bg-white/10 hover:backdrop-saturate-150 border-white/10 hover:border-white/20"
                 >
-                  {/* Animated gradient border */}
-                  <div className="absolute inset-0 rounded-[36px] p-[1px] bg-gradient-to-br from-blue-500/0 via-blue-500/0 to-blue-500/0 group-hover:from-blue-500/50 group-hover:via-blue-400/30 group-hover:to-transparent transition-all duration-500 -z-10" />
-                  <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                  <div className="relative z-10 flex flex-col items-center gap-6">
-                    <div className="p-5 bg-gradient-to-br from-gray-800/90 to-gray-900/90 rounded-2xl group-hover:from-blue-500 group-hover:to-blue-600 group-hover:scale-110 group-hover:rotate-3 transition-all duration-500 shadow-xl shadow-black/40 group-hover:shadow-blue-500/40 ring-1 ring-white/10 group-hover:ring-blue-400/50">
-                      <MessageSquare className="w-8 h-8 text-blue-400 group-hover:text-white transition-colors duration-300" strokeWidth={1.5} />
+                  {/* Water Reflection (Sheen) */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-blue-400/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none mix-blend-overlay" />
+                  <div className="absolute -inset-[100%] bg-gradient-to-r from-transparent via-white/20 to-transparent rotate-[35deg] translate-x-[-100%] group-hover:translate-x-[200%] transition-transform duration-[1.5s] ease-in-out pointer-events-none" />
+
+                  <div className="relative z-10 flex flex-row md:flex-col items-center gap-4 md:gap-6 text-left md:text-center">
+                    <div className="p-3 md:p-5 rounded-2xl bg-white/5 border border-white/20 shadow-inner group-hover:scale-110 group-hover:rotate-3 transition-all duration-500 shrink-0 relative overflow-hidden backdrop-blur-md">
+                      <div className="absolute inset-0 bg-blue-400/30 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                      <MessageCircle className="w-6 h-6 md:w-8 md:h-8 text-blue-200 group-hover:text-white transition-colors duration-300 relative z-10 drop-shadow-md" strokeWidth={2} />
                     </div>
-                    <div className="text-center">
-                      <h3 className="text-2xl font-bold text-white mb-2 group-hover:text-blue-100 transition-colors duration-300">Blind Chat</h3>
-                      <p className="text-sm text-gray-400 group-hover:text-gray-300 transition-colors duration-300 leading-relaxed">Break the ice with text</p>
+                    <div>
+                      <h3 className="text-xl md:text-2xl font-black text-white mb-1 md:mb-2 group-hover:text-blue-200 transition-colors duration-300 drop-shadow-lg tracking-tight">Blind Chat</h3>
+                      <p className="text-xs md:text-sm text-blue-100/70 group-hover:text-white transition-colors duration-300 leading-relaxed font-medium">Break the ice with text</p>
                     </div>
                   </div>
                 </button>
@@ -325,21 +349,23 @@ function App() {
                 <button
                   onClick={() => handleStartSearch('video')}
                   disabled={!consentGiven}
-                  className="flex-1 group relative bg-gray-900/50 backdrop-blur-xl border border-white/10 rounded-[36px] p-8 transition-all duration-500 hover:-translate-y-2 hover:bg-gray-800/70 hover:border-pink-500/30 overflow-hidden hover:shadow-[0_20px_60px_-15px_rgba(236,72,153,0.5)]"
+                  className="flex-1 group relative overflow-hidden rounded-[24px] md:rounded-[36px] p-4 md:p-8 transition-all duration-700 ease-out hover:-translate-y-2 hover:scale-[1.02] w-full glass-liquid hover:shadow-[0_20px_60px_-15px_rgba(236,72,153,0.6)] hover:bg-white/10 hover:backdrop-saturate-150 border-white/10 hover:border-white/20"
                 >
-                  {/* Animated gradient border */}
-                  <div className="absolute inset-0 rounded-[36px] p-[1px] bg-gradient-to-br from-pink-500/0 via-pink-500/0 to-pink-500/0 group-hover:from-pink-500/50 group-hover:via-pink-400/30 group-hover:to-transparent transition-all duration-500 -z-10" />
-                  <div className="absolute inset-0 bg-gradient-to-br from-pink-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                  {/* Water Reflection (Sheen) */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-pink-400/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none mix-blend-overlay" />
+                  <div className="absolute -inset-[100%] bg-gradient-to-r from-transparent via-white/20 to-transparent rotate-[35deg] translate-x-[-100%] group-hover:translate-x-[200%] transition-transform duration-[1.5s] ease-in-out pointer-events-none" />
+
                   {/* Enhanced Pulse Effect */}
                   <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-36 h-36 bg-pink-500/20 rounded-full blur-[45px] animate-pulse-slow opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
-                  <div className="relative z-10 flex flex-col items-center gap-6">
-                    <div className="p-5 bg-gradient-to-br from-gray-800/90 to-gray-900/90 rounded-2xl group-hover:from-pink-500 group-hover:to-pink-600 group-hover:scale-110 group-hover:rotate-3 transition-all duration-500 shadow-xl shadow-black/40 group-hover:shadow-pink-500/40 ring-1 ring-white/10 group-hover:ring-pink-400/50">
-                      <Zap className="w-8 h-8 text-pink-400 group-hover:text-white transition-colors duration-300" strokeWidth={1.5} />
+                  <div className="relative z-10 flex flex-row md:flex-col items-center gap-4 md:gap-6 text-left md:text-center">
+                    <div className="p-3 md:p-5 rounded-2xl bg-white/5 border border-white/20 shadow-inner group-hover:scale-110 group-hover:rotate-3 transition-all duration-500 shrink-0 relative overflow-hidden backdrop-blur-md">
+                      <div className="absolute inset-0 bg-pink-400/30 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                      <Video className="w-6 h-6 md:w-8 md:h-8 text-pink-200 group-hover:text-white transition-colors duration-300 relative z-10 drop-shadow-md" strokeWidth={2} />
                     </div>
-                    <div className="text-center">
-                      <h3 className="text-2xl font-bold text-white mb-2 group-hover:text-pink-100 transition-colors duration-300">Video Date</h3>
-                      <p className="text-sm text-gray-400 group-hover:text-gray-300 transition-colors duration-300 leading-relaxed">See real chemistry</p>
+                    <div>
+                      <h3 className="text-xl md:text-2xl font-black text-white mb-1 md:mb-2 group-hover:text-pink-200 transition-colors duration-300 drop-shadow-lg tracking-tight">Video Date</h3>
+                      <p className="text-xs md:text-sm text-pink-100/70 group-hover:text-white transition-colors duration-300 leading-relaxed font-medium">See real chemistry</p>
                     </div>
                   </div>
                 </button>
@@ -396,37 +422,44 @@ function App() {
             </div>
           )}
 
-          {/* State: Connected */}
+          {/* State: Connected or Connecting */}
           {roomId && (
             <ErrorBoundary>
-              {hasVideo ? (
-                <VideoRoom
-                  localStream={localStream}
-                  remoteStream={remoteStream}
-                  connectionState={connectionState}
-                  messages={messages}
-                  sendChatMessage={sendChatMessage}
-                  sendTyping={sendTyping}
-                  sendEmoji={sendEmoji}
-                  incomingEmoji={incomingEmoji}
-                  isPartnerTyping={isPartnerTyping}
-                  onStop={() => handleStop(true)}
-                  onNext={handleNext}
-                  onReport={handleReport}
-                />
+              {connectionState === 'connected' ? (
+                /* Connected: Show Room */
+                hasVideo ? (
+                  <VideoRoom
+                    localStream={localStream}
+                    remoteStream={remoteStream}
+                    connectionState={connectionState}
+                    messages={messages}
+                    sendChatMessage={sendChatMessage}
+                    sendTyping={sendTyping}
+                    sendEmoji={sendEmoji}
+                    incomingEmoji={incomingEmoji}
+                    isPartnerTyping={isPartnerTyping}
+                    onStop={onStopClick}
+                    onNext={onNextClick}
+                  />
+                ) : (
+                  <TextRoom
+                    connectionState={connectionState}
+                    messages={messages}
+                    sendChatMessage={sendChatMessage}
+                    sendTyping={sendTyping}
+                    sendEmoji={sendEmoji}
+                    incomingEmoji={incomingEmoji}
+                    isPartnerTyping={isPartnerTyping}
+                    onStop={onStopClick}
+                    onNext={onNextClick}
+                  />
+                )
+              ) : ['disconnected', 'failed', 'closed'].includes(connectionState) ? (
+                /* Disconnected: Show Lost Screen */
+                <PeerDisconnectedScreen onNext={onNextClick} onStop={onStopClick} />
               ) : (
-                <TextRoom
-                  connectionState={connectionState}
-                  messages={messages}
-                  sendChatMessage={sendChatMessage}
-                  sendTyping={sendTyping}
-                  sendEmoji={sendEmoji}
-                  incomingEmoji={incomingEmoji}
-                  isPartnerTyping={isPartnerTyping}
-                  onStop={() => handleStop(true)}
-                  onNext={handleNext}
-                  onReport={handleReport}
-                />
+                /* Connecting: Show Overlay */
+                <ConnectingScreen onCancel={onStopClick} />
               )}
             </ErrorBoundary>
           )}
@@ -451,13 +484,87 @@ function App() {
   )
 }
 
+function ConnectingScreen({ onCancel }: { onCancel: () => void }) {
+  return (
+    <div className="flex flex-col items-center justify-center w-full h-full animate-in fade-in duration-500 z-50">
+      <div className="relative mb-8">
+        {/* Pulsing Rings */}
+        <div className="absolute inset-0 bg-purple-500/20 rounded-full animate-ping [animation-duration:2s]" />
+        <div className="absolute inset-0 bg-purple-500/10 rounded-full animate-ping [animation-duration:3s] [animation-delay:0.5s]" />
+
+        <div className="w-24 h-24 bg-gray-900 rounded-full flex items-center justify-center border border-white/10 shadow-[0_0_40px_-10px_rgba(168,85,247,0.5)] relative overflow-hidden z-10">
+          <div className="absolute inset-0 bg-gradient-to-tr from-purple-500/20 to-transparent animate-spin-slow" />
+          <div className="w-16 h-16 border-4 border-white/5 border-t-purple-500 rounded-full animate-spin" />
+        </div>
+      </div>
+
+      <h3 className="text-2xl md:text-3xl font-bold text-white mb-2 tracking-tight">Connecting...</h3>
+      <p className="text-gray-400 font-medium mb-8">Establishing a secure line</p>
+
+      <button
+        onClick={onCancel}
+        className="px-8 py-2.5 rounded-full bg-white/5 hover:bg-white/10 text-white/80 hover:text-white font-medium transition-all border border-white/10 hover:border-white/20 text-sm"
+      >
+        Cancel
+      </button>
+    </div>
+  )
+}
+
+function PeerDisconnectedScreen({ onNext, onStop }: { onNext: () => void, onStop: () => void }) {
+  return (
+    <div className="flex flex-col items-center justify-center w-full h-full animate-in fade-in zoom-in-95 duration-300 z-50">
+      <h3 className="text-4xl md:text-5xl font-black text-white mb-4 tracking-tighter drop-shadow-xl">Connection Ended</h3>
+      <p className="text-gray-400 mb-8 font-medium">Your partner left the chat.</p>
+
+      <div className="flex items-center gap-4">
+        <button
+          onClick={onStop}
+          className="px-6 py-2.5 rounded-full bg-white/5 hover:bg-white/10 text-white font-bold transition-all border border-white/10 hover:border-white/20 text-xs tracking-wide"
+        >
+          Back to Lobby
+        </button>
+        <button
+          onClick={onNext}
+          className="px-8 py-2.5 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold transition-all shadow-[0_10px_30px_-10px_rgba(168,85,247,0.5)] hover:scale-105 active:scale-95 text-sm flex items-center gap-2"
+        >
+          <span>Find Next</span>
+          <span>→</span>
+        </button>
+      </div>
+    </div>
+  )
+}
+
 function OnlineUsersBadge() {
-  const [count, setCount] = useState(1243)
+  const [count, setCount] = useState(1) // Start with 1 (Me)
+
   useEffect(() => {
-    const interval = setInterval(() => {
-      setCount(prev => prev + Math.floor(Math.random() * 5) - 2)
-    }, 3000)
-    return () => clearInterval(interval)
+    // Unique channel for global presence
+    const channel = supabase.channel('global_lobby', {
+      config: {
+        presence: {
+          key: 'user-' + Math.random().toString(36).substring(7), // Anonymous unique ID
+        },
+      },
+    })
+
+    channel
+      .on('presence', { event: 'sync' }, () => {
+        const state = channel.presenceState()
+        // Count total unique keys
+        const totalUsers = Object.keys(state).length
+        setCount(totalUsers > 0 ? totalUsers : 1)
+      })
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          await channel.track({ online_at: new Date().toISOString() })
+        }
+      })
+
+    return () => {
+      channel.unsubscribe()
+    }
   }, [])
 
   return (
