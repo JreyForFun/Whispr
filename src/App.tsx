@@ -306,11 +306,11 @@ function App() {
 
       {/* Main Content */}
       <ErrorBoundary>
-        <main className={`flex-1 flex flex-col relative ${roomId ? 'w-full bg-transparent p-0 overflow-hidden' : 'items-center justify-center pt-20 pb-4 p-4'}`}>
+        <main className={`flex-1 flex flex-col relative ${roomId ? 'w-full bg-transparent p-0 overflow-hidden' : 'items-center justify-center pt-4 pb-8 p-4'}`}>
 
           {/* State: Waiting Only (No Match, Not Searching) */}
           {!isMatching && !roomId && (
-            <div className="flex flex-col items-center w-full max-w-5xl animate-in fade-in-up duration-700 gap-6 md:gap-12 py-8 md:py-0">
+            <div className="flex flex-col items-center w-full max-w-5xl h-full min-h-[600px] animate-in fade-in-up duration-700 justify-evenly md:justify-center md:gap-12">
               {/* Hero Text */}
               <div className="text-center relative shrink-0 mt-12 md:mt-0">
                 <div className="absolute -inset-10 bg-purple-500/10 blur-[100px] rounded-full pointer-events-none" />
@@ -327,17 +327,14 @@ function App() {
                 <button
                   onClick={() => handleStartSearch('text')}
                   disabled={!consentGiven}
-                  className="flex-1 group relative overflow-hidden rounded-[24px] md:rounded-[36px] p-4 md:p-8 transition-all duration-700 ease-out hover:-translate-y-2 hover:scale-[1.02] w-full glass-liquid hover:shadow-[0_20px_60px_-15px_rgba(59,130,246,0.6)] hover:bg-white/10 hover:backdrop-saturate-150 border-white/10 hover:border-white/20"
+                  className="flex-1 group relative overflow-hidden rounded-[24px] md:rounded-[36px] p-6 md:p-8 transition-all duration-700 ease-out hover:-translate-y-2 hover:scale-[1.02] w-full glass-liquid hover:shadow-[0_20px_60px_-15px_rgba(59,130,246,0.6)] hover:bg-white/10 hover:backdrop-saturate-150 border-white/10 hover:border-white/20"
                 >
                   {/* Water Reflection (Sheen) */}
                   <div className="absolute inset-0 bg-gradient-to-br from-blue-400/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none mix-blend-overlay" />
                   <div className="absolute -inset-[100%] bg-gradient-to-r from-transparent via-white/20 to-transparent rotate-[35deg] translate-x-[-100%] group-hover:translate-x-[200%] transition-transform duration-[1.5s] ease-in-out pointer-events-none" />
 
                   <div className="relative z-10 flex flex-row md:flex-col items-center gap-4 md:gap-6 text-left md:text-center">
-                    <div className="p-3 md:p-5 rounded-2xl bg-white/5 border border-white/20 shadow-inner group-hover:scale-110 group-hover:rotate-3 transition-all duration-500 shrink-0 relative overflow-hidden backdrop-blur-md">
-                      <div className="absolute inset-0 bg-blue-400/30 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                      <MessageCircle className="w-6 h-6 md:w-8 md:h-8 text-blue-200 group-hover:text-white transition-colors duration-300 relative z-10 drop-shadow-md" strokeWidth={2} />
-                    </div>
+                    <MessageCircle className="w-12 h-12 md:w-16 md:h-16 text-blue-300 group-hover:text-white transition-all duration-300 relative z-10 drop-shadow-[0_0_15px_rgba(59,130,246,0.5)] group-hover:scale-110 group-hover:rotate-3" strokeWidth={1.5} />
                     <div>
                       <h3 className="text-xl md:text-2xl font-black text-white mb-1 md:mb-2 group-hover:text-blue-200 transition-colors duration-300 drop-shadow-lg tracking-tight">Blind Chat</h3>
                       <p className="text-xs md:text-sm text-blue-100/70 group-hover:text-white transition-colors duration-300 leading-relaxed font-medium">Break the ice with text</p>
@@ -349,7 +346,7 @@ function App() {
                 <button
                   onClick={() => handleStartSearch('video')}
                   disabled={!consentGiven}
-                  className="flex-1 group relative overflow-hidden rounded-[24px] md:rounded-[36px] p-4 md:p-8 transition-all duration-700 ease-out hover:-translate-y-2 hover:scale-[1.02] w-full glass-liquid hover:shadow-[0_20px_60px_-15px_rgba(236,72,153,0.6)] hover:bg-white/10 hover:backdrop-saturate-150 border-white/10 hover:border-white/20"
+                  className="flex-1 group relative overflow-hidden rounded-[24px] md:rounded-[36px] p-6 md:p-8 transition-all duration-700 ease-out hover:-translate-y-2 hover:scale-[1.02] w-full glass-liquid hover:shadow-[0_20px_60px_-15px_rgba(236,72,153,0.6)] hover:bg-white/10 hover:backdrop-saturate-150 border-white/10 hover:border-white/20"
                 >
                   {/* Water Reflection (Sheen) */}
                   <div className="absolute inset-0 bg-gradient-to-br from-pink-400/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none mix-blend-overlay" />
@@ -359,10 +356,7 @@ function App() {
                   <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-36 h-36 bg-pink-500/20 rounded-full blur-[45px] animate-pulse-slow opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
                   <div className="relative z-10 flex flex-row md:flex-col items-center gap-4 md:gap-6 text-left md:text-center">
-                    <div className="p-3 md:p-5 rounded-2xl bg-white/5 border border-white/20 shadow-inner group-hover:scale-110 group-hover:rotate-3 transition-all duration-500 shrink-0 relative overflow-hidden backdrop-blur-md">
-                      <div className="absolute inset-0 bg-pink-400/30 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                      <Video className="w-6 h-6 md:w-8 md:h-8 text-pink-200 group-hover:text-white transition-colors duration-300 relative z-10 drop-shadow-md" strokeWidth={2} />
-                    </div>
+                    <Video className="w-12 h-12 md:w-16 md:h-16 text-pink-300 group-hover:text-white transition-all duration-300 relative z-10 drop-shadow-[0_0_15px_rgba(236,72,153,0.5)] group-hover:scale-110 group-hover:rotate-3" strokeWidth={1.5} />
                     <div>
                       <h3 className="text-xl md:text-2xl font-black text-white mb-1 md:mb-2 group-hover:text-pink-200 transition-colors duration-300 drop-shadow-lg tracking-tight">Video Date</h3>
                       <p className="text-xs md:text-sm text-pink-100/70 group-hover:text-white transition-colors duration-300 leading-relaxed font-medium">See real chemistry</p>

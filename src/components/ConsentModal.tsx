@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ChevronLeft, ShieldAlert, Heart, Lock, UserX } from 'lucide-react'
+import { ShieldCheck, Check, ChevronLeft, ShieldAlert, Heart, Lock, UserX } from 'lucide-react'
 import { useSession } from '../store/useSession'
 import { v4 as uuidv4 } from 'uuid'
 
@@ -100,12 +100,12 @@ export function ConsentModal() {
             </div>
           ) : (
             <div className="relative z-10 flex flex-col items-center animate-in slide-in-from-left duration-300 h-full">
-              {/* Logo (Image) - No Container */}
-              <img
-                src="/pwa-512x512.png"
-                alt="Whispr Logo"
-                className="w-24 h-24 mb-6 drop-shadow-[0_0_30px_rgba(168,85,247,0.5)] animate-float object-contain"
-              />
+              {/* Icon */}
+              {/* Logo */}
+              <div className="mb-6 shrink-0 relative hover:scale-105 transition-transform duration-500">
+                <div className="absolute inset-0 bg-purple-500/30 blur-2xl rounded-full" />
+                <img src="/pwa-512x512.png" alt="Whispr Logo" className="w-24 h-24 relative z-10 drop-shadow-2xl" />
+              </div>
 
               <h1 className="text-4xl font-black text-white mb-2 tracking-tight font-brand">Whispr</h1>
               <p className="text-gray-400 mb-10 text-sm font-medium tracking-wide">
@@ -120,32 +120,32 @@ export function ConsentModal() {
                       type="checkbox"
                       checked={agreedAge}
                       onChange={(e) => setAgreedAge(e.target.checked)}
-                      className="peer sr-only"
+                      className="sr-only"
                     />
-                    <div className="w-5 h-5 rounded-lg border-2 border-gray-600 peer-checked:border-purple-500 peer-checked:bg-purple-500 transition-all duration-300 flex items-center justify-center group-hover:border-gray-500" />
+                    <div className={`w-5 h-5 rounded-lg border-2 transition-all duration-300 flex items-center justify-center 
+                          ${agreedAge ? 'border-purple-500 bg-purple-500' : 'border-gray-600 group-hover:border-gray-500'}`} />
                   </div>
                   <span className="text-sm text-gray-400 group-hover:text-gray-300 transition-colors select-none font-medium">
                     I am 18+ years old and I confirm that I am not a minor.
                   </span>
                 </label>
 
-                <div className="flex items-start gap-4 p-4 rounded-2xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] hover:border-white/10 transition-all duration-300 group">
+                <div
+                  className="flex items-start gap-4 p-4 rounded-2xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] hover:border-white/10 transition-all duration-300 group cursor-pointer"
+                  onClick={() => setShowRules(true)}
+                >
                   <div className="relative flex-shrink-0 mt-0.5 pointer-events-none">
                     <div
                       className={`w-5 h-5 rounded-lg border-2 transition-all duration-300 flex items-center justify-center 
-                            ${agreedRules ? 'border-purple-500 bg-purple-500' : 'border-gray-600 group-hover:border-gray-500'}`}
-                    />
+                            ${agreedRules ? 'border-purple-500 bg-purple-500' : 'border-gray-600 group-hover:border-gray-500'}`} />
                   </div>
                   <div className="flex flex-col items-start gap-1">
-                    <span className="text-sm text-gray-400 group-hover:text-gray-300 transition-colors select-none font-medium cursor-pointer" onClick={() => setAgreedRules(!agreedRules)}>
+                    <span className="text-sm text-gray-400 group-hover:text-gray-300 transition-colors select-none font-medium">
                       I have read and agree to the
                     </span>
-                    <button
-                      onClick={() => setShowRules(true)}
-                      className="text-sm font-bold text-purple-400 hover:text-purple-300 hover:underline decoration-purple-500/30 underline-offset-4 transition-colors text-left"
-                    >
+                    <span className="text-sm font-bold text-purple-400 group-hover:text-purple-300 group-hover:underline decoration-purple-500/30 underline-offset-4 transition-colors text-left">
                       Community Rules
-                    </button>
+                    </span>
                   </div>
                 </div>
               </div>
