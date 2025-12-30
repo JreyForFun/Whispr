@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ShieldCheck, Check, ChevronLeft, ShieldAlert, Heart, Lock, UserX } from 'lucide-react'
+import { ChevronLeft, ShieldAlert, Heart, Lock, UserX } from 'lucide-react'
 import { useSession } from '../store/useSession'
 import { v4 as uuidv4 } from 'uuid'
 

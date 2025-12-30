@@ -1,4 +1,4 @@
-import { X, ShieldCheck, Scale, Mail, ScrollText, Lock, AlertTriangle } from 'lucide-react'
+import { X, ShieldCheck, Scale, Mail, ScrollText } from 'lucide-react'
 
 interface LegalProps {
   isOpen: boolean

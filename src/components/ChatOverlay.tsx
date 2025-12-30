@@ -6,7 +6,6 @@ interface ChatOverlayProps {
   onSendMessage: (text: string) => void
   visible: boolean
   variant?: 'overlay' | 'fullscreen'
-  connectionState?: RTCPeerConnectionState
   isPartnerTyping?: boolean
   onTyping?: (isTyping: boolean) => void
   showHeader?: boolean
@@ -17,7 +16,6 @@ export function ChatOverlay({
   onSendMessage,
   visible,
   variant = 'overlay',
-  connectionState = 'new',
   isPartnerTyping,
   onTyping,
   showHeader = true

@@ -3,7 +3,6 @@ import { EmojiBlast } from './EmojiBlast'
 import { LogOut, ArrowRight } from 'lucide-react'
 
 interface TextRoomProps {
-  connectionState: RTCPeerConnectionState
   messages: any[]
   sendChatMessage: (text: string) => void
   sendTyping?: (isTyping: boolean) => void
@@ -15,7 +14,6 @@ interface TextRoomProps {
 }
 
 export function TextRoom({
-  connectionState,
   messages,
   sendChatMessage,
   sendTyping,
@@ -40,7 +38,6 @@ export function TextRoom({
           onSendMessage={sendChatMessage}
           visible={true}
           variant="fullscreen"
-          connectionState={connectionState}
           isPartnerTyping={isPartnerTyping}
           onTyping={sendTyping}
         />

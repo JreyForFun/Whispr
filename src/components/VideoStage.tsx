@@ -4,10 +4,9 @@ import { VideoOff } from 'lucide-react'
 interface VideoStageProps {
   localStream: MediaStream | null
   remoteStream: MediaStream | null
-  connectionState: RTCPeerConnectionState
 }
 
-export function VideoStage({ localStream, remoteStream, connectionState }: VideoStageProps) {
+export function VideoStage({ localStream, remoteStream }: VideoStageProps) {
   const localVideoRef = useRef<HTMLVideoElement>(null)
   const remoteVideoRef = useRef<HTMLVideoElement>(null)
 
@@ -47,19 +46,12 @@ export function VideoStage({ localStream, remoteStream, connectionState }: Video
 
         {/* Connection Status Badge */}
         <div className="absolute top-4 left-4 z-10 flex items-center gap-2.5 px-3 py-1.5 md:px-4 md:py-2 bg-black/40 backdrop-blur-md rounded-full border border-white/10 shrink-0 shadow-lg transition-all duration-300">
-          {connectionState === 'connected' ? (
-            <span className="relative flex h-2 w-2 md:h-2.5 md:w-2.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500"></span>
-            </span>
-          ) : (
-            <span className="relative flex h-2 w-2 md:h-2.5 md:w-2.5">
-              <span className="animate-pulse absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-yellow-500"></span>
-            </span>
-          )}
+          <span className="relative flex h-2 w-2 md:h-2.5 md:w-2.5">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500"></span>
+          </span>
           <span className="text-[9px] md:text-[10px] font-bold text-white/90 uppercase tracking-widest">
-            {connectionState === 'connected' ? 'Live' : connectionState}
+            Live
           </span>
         </div>
         <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />

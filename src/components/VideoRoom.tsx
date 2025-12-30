@@ -7,7 +7,6 @@ import { LogOut, Mic, MicOff, Video, VideoOff, MessageSquare } from 'lucide-reac
 interface VideoRoomProps {
   localStream: MediaStream | null
   remoteStream: MediaStream | null
-  connectionState: RTCPeerConnectionState
   messages: any[]
   sendChatMessage: (text: string) => void
   onStop: () => void
@@ -21,7 +20,6 @@ interface VideoRoomProps {
 export function VideoRoom({
   localStream,
   remoteStream,
-  connectionState,
   messages,
   sendChatMessage,
   onStop,
@@ -64,7 +62,6 @@ export function VideoRoom({
           <VideoStage
             localStream={localStream}
             remoteStream={remoteStream}
-            connectionState={connectionState}
           />
         </div>
 
@@ -84,7 +81,6 @@ export function VideoRoom({
             onSendMessage={sendChatMessage}
             visible={true}
             variant="fullscreen"
-            connectionState={connectionState}
             isPartnerTyping={isPartnerTyping}
             onTyping={sendTyping}
             showHeader={false}

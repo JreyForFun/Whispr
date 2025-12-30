@@ -425,7 +425,6 @@ function App() {
                   <VideoRoom
                     localStream={localStream}
                     remoteStream={remoteStream}
-                    connectionState={connectionState}
                     messages={messages}
                     sendChatMessage={sendChatMessage}
                     sendTyping={sendTyping}
@@ -437,7 +436,6 @@ function App() {
                   />
                 ) : (
                   <TextRoom
-                    connectionState={connectionState}
                     messages={messages}
                     sendChatMessage={sendChatMessage}
                     sendTyping={sendTyping}
